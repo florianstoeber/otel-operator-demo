@@ -1,5 +1,12 @@
 # otel-operator-demo
-
+## 0. ToDos
+Not working: 
+- Metrics exporting to Dynatrace
+- Instrument the missing services
+  - already done:
+    - emailservice
+    - adservice
+    - paymentservice
 ## 1. Requirements
 - Kubernetes Cluster
 - Destination to send data (Demo is using Dynatrace)
@@ -106,9 +113,15 @@ spec:
 
     exporters:
       logging:
-      otlphttp:
-        endpoint: "https://$tenant.live.dynatrace.com/api/v2/otlp"
-        headers: {"Authorization": "Api-Token $token"}
+      # OTLPHTTP used for Dynatrace
+      # otlphttp:
+      #   endpoint: "https://$tenant.live.dynatrace.com/api/v2/otlp"
+      #   headers: {"Authorization": "Api-Token $token"}
+      # OTLP used for other Backends. This example is NewRelic
+      otlp:
+        endpoint: https://otlp.eu01.nr-data.net:4317
+        headers:
+          api-key: $newreliclicensekey
 
     service:
       telemetry:
@@ -118,11 +131,13 @@ spec:
         traces: 
           receivers: [otlp]
           processors: []
-          exporters: [logging, otlphttp]
+          #exporters: [logging, otlphttp]
+          exporters: [logging, otlp]
         metrics:
           receivers: [otlp]
           processors: []
-          exporters: [logging, otlphttp]
+          #exporters: [logging, otlphttp]
+          exporters: [logging, otlp]
 EOF
 ```
 
