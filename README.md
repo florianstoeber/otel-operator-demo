@@ -3,7 +3,13 @@
 ## 1. Requirements
 - Kubernetes Cluster
 - Destination to send data (Demo is using Dynatrace)
-### 1.1 Install webapplication to use in this demo
+### 1.1 Create a Kuberentes cluster
+As we need a Kubernetes cluster, we will initiliaze a GKE cluster with enabled cluster-autoscaler. In case you have no access to a Google Cloud project, feel free to adapt this to another cloud provider. The following steps are cloud-agnostic:
+```bash
+gcloud container clusters create otel-operator-demo --enable-autoscaling --total-min-nodes=3 --total-max-nodes=10 --zone us-central1-c
+gcloud container clusters get-credentials otel-operator-demo --zone us-central1-c --project $PROJECT_ID
+```
+### 1.2 Install webapplication to use in this demo
 ```bash
 helm upgrade onlineboutique -n boutique --create-namespace oci://us-docker.pkg.dev/online-boutique-ci/charts/onlineboutique \
     --install
