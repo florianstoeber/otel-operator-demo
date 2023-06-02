@@ -3,10 +3,12 @@
 Not working: 
 - Metrics exporting to Dynatrace
 - Instrument the missing services
-  - already done:
-    - emailservice
-    - adservice
-    - paymentservice
+  - missing:
+    - cart
+    - checkout
+    - frontend
+    - productcatalog
+    - shipping
 ## 1. Requirements
 - Kubernetes Cluster
 - Destination to send data (Demo is using Dynatrace)
@@ -86,6 +88,10 @@ spec:
           receivers: [otlp]
           processors: []
           exporters: [logging, otlp]
+        logs:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [otlp]
 EOF
 ```
 
@@ -121,7 +127,7 @@ spec:
       otlp:
         endpoint: https://otlp.eu01.nr-data.net:4317
         headers:
-          api-key: $newreliclicensekey
+          api-key: $NEWRELIC_LICENSEKEY
 
     service:
       telemetry:
@@ -138,6 +144,10 @@ spec:
           processors: []
           #exporters: [logging, otlphttp]
           exporters: [logging, otlp]
+        logs:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [otlp]
 EOF
 ```
 
@@ -174,12 +184,12 @@ EOF
 ```
 
 ### 5. Adding annotations to the services we want to observe
-Add the two following annotations to the Pod Mannifest in the emailservice Deployment:
+Add the two following annotations to the Pod Mannifest in the emailservice, recommendationservice Deployment:
 ```yaml
 instrumentation.opentelemetry.io/inject-python: instrumentation-python  # This will add the defined instrumentation so that Python code can be instrumented
 sidecar.opentelemetry.io/inject: otel-sidecar # This will add the sidecar collector we defined before
 ```
-Add the two following annotations to the Pod Mannifest in the paymentservice Deployment:
+Add the two following annotations to the Pod Mannifest in the paymentservice, currencyservice Deployment:
 ```yaml
 instrumentation.opentelemetry.io/inject-nodejs: instrumentation  # This will add the defined instrumentation so that NodeJS code can be instrumented
 sidecar.opentelemetry.io/inject: otel-sidecar # This will add the sidecar collector we defined before
@@ -187,6 +197,6 @@ sidecar.opentelemetry.io/inject: otel-sidecar # This will add the sidecar collec
 
 Add the two following annotations to the Pod Mannifest in the adservice Deployment:
 ```yaml
-instrumentation.opentelemetry.io/inject-java: instrumentation  # This will add the defined instrumentation so that NodeJS code can be instrumented
+instrumentation.opentelemetry.io/inject-java: instrumentation  # This will add the defined instrumentation so that Java code can be instrumented
 sidecar.opentelemetry.io/inject: otel-sidecar # This will add the sidecar collector we defined before
 ```
