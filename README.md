@@ -1,9 +1,24 @@
 # otel-operator-demo
-
+## 0. ToDos
+Not working: 
+- Metrics exporting to Dynatrace
+- Instrument the missing services
+  - missing:
+    - cart
+    - checkout
+    - frontend
+    - productcatalog
+    - shipping
 ## 1. Requirements
 - Kubernetes Cluster
 - Destination to send data (Demo is using Dynatrace)
-### 1.1 Install webapplication to use in this demo
+### 1.1 Create a Kuberentes cluster
+As we need a Kubernetes cluster, we will initiliaze a GKE cluster with enabled cluster-autoscaler. In case you have no access to a Google Cloud project, feel free to adapt this to another cloud provider. The following steps are cloud-agnostic:
+```bash
+gcloud container clusters create otel-operator-demo --enable-autoscaling --total-min-nodes=3 --total-max-nodes=10 --zone us-central1-c
+gcloud container clusters get-credentials otel-operator-demo --zone us-central1-c --project $PROJECT_ID
+```
+### 1.2 Install webapplication to use in this demo
 ```bash
 helm upgrade onlineboutique -n boutique --create-namespace oci://us-docker.pkg.dev/online-boutique-ci/charts/onlineboutique \
     --install
@@ -73,6 +88,10 @@ spec:
           receivers: [otlp]
           processors: []
           exporters: [logging, otlp]
+        logs:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [otlp]
 EOF
 ```
 
@@ -100,9 +119,15 @@ spec:
 
     exporters:
       logging:
-      otlphttp:
-        endpoint: "https://$tenant.live.dynatrace.com/api/v2/otlp"
-        headers: {"Authorization": "Api-Token $token"}
+      # OTLPHTTP used for Dynatrace
+      # otlphttp:
+      #   endpoint: "https://$tenant.live.dynatrace.com/api/v2/otlp"
+      #   headers: {"Authorization": "Api-Token $token"}
+      # OTLP used for other Backends. This example is NewRelic
+      otlp:
+        endpoint: https://otlp.eu01.nr-data.net:4317
+        headers:
+          api-key: $NEWRELIC_LICENSEKEY
 
     service:
       telemetry:
@@ -112,11 +137,17 @@ spec:
         traces: 
           receivers: [otlp]
           processors: []
-          exporters: [logging, otlphttp]
+          #exporters: [logging, otlphttp]
+          exporters: [logging, otlp]
         metrics:
           receivers: [otlp]
           processors: []
-          exporters: [logging, otlphttp]
+          #exporters: [logging, otlphttp]
+          exporters: [logging, otlp]
+        logs:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [otlp]
 EOF
 ```
 
@@ -153,12 +184,12 @@ EOF
 ```
 
 ### 5. Adding annotations to the services we want to observe
-Add the two following annotations to the Pod Mannifest in the emailservice Deployment:
+Add the two following annotations to the Pod Mannifest in the emailservice, recommendationservice Deployment:
 ```yaml
 instrumentation.opentelemetry.io/inject-python: instrumentation-python  # This will add the defined instrumentation so that Python code can be instrumented
 sidecar.opentelemetry.io/inject: otel-sidecar # This will add the sidecar collector we defined before
 ```
-Add the two following annotations to the Pod Mannifest in the paymentservice Deployment:
+Add the two following annotations to the Pod Mannifest in the paymentservice, currencyservice Deployment:
 ```yaml
 instrumentation.opentelemetry.io/inject-nodejs: instrumentation  # This will add the defined instrumentation so that NodeJS code can be instrumented
 sidecar.opentelemetry.io/inject: otel-sidecar # This will add the sidecar collector we defined before
@@ -166,6 +197,6 @@ sidecar.opentelemetry.io/inject: otel-sidecar # This will add the sidecar collec
 
 Add the two following annotations to the Pod Mannifest in the adservice Deployment:
 ```yaml
-instrumentation.opentelemetry.io/inject-java: instrumentation  # This will add the defined instrumentation so that NodeJS code can be instrumented
+instrumentation.opentelemetry.io/inject-java: instrumentation  # This will add the defined instrumentation so that Java code can be instrumented
 sidecar.opentelemetry.io/inject: otel-sidecar # This will add the sidecar collector we defined before
 ```
